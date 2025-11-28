@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Skill Exchange — Prototype</title>
+  <style>
+    :root{--bg:#0f1724;--card:#0b1220;--accent:#7dd3fc;--muted:#94a3b8;--accent-2:#60a5fa}
+    *{box-sizing:border-box;font-family:Inter,system-ui,Segoe UI,Roboto,Arial}
+    body{margin:0;background:linear-gradient(180deg,#071028 0%, #071a2a 100%);color:#e6eef6;min-height:100vh}
+    .wrap{max-width:1100px;margin:28px auto;padding:20px}
+    header{display:flex;align-items:center;justify-content:space-between}
+    h1{margin:0;font-size:20px}
+    .card{background:rgba(255,255,255,0.02);padding:16px;border-radius:12px;box-shadow:0 6px 18px rgba(2,6,23,0.6);}
+    .grid{display:grid;grid-template-columns:1fr 360px;gap:18px;margin-top:18px}
+    .form-row{display:flex;gap:8px;margin-bottom:8px}
+    input,select,textarea,button{background:transparent;border:1px solid rgba(255,255,255,0.06);padding:10px;border-radius:8px;color:inherit}
+    button{cursor:pointer;border:none;background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#022235;font-weight:700}
+    .small{font-size:13px;color:var(--muted)}
+    .list{max-height:420px;overflow:auto;margin-top:12px}
+    .user{display:flex;align-items:center;justify-content:space-between;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.02);margin-bottom:8px}
+    .meta{display:flex;gap:10px;align-items:center}
+    .avatar{width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,#1e293b,#0ea5a6);display:flex;align-items:center;justify-content:center;font-weight:700}
+    .badge{font-size:12px;padding:6px;border-radius:999px;background:rgba(255,255,255,0.03)}
+    .muted{color:var(--muted)}
+    footer{margin-top:20px;color:var(--muted);font-size:13px}
+    .match{background:linear-gradient(90deg, rgba(96,165,250,0.08), rgba(125,211,252,0.03));padding:8px;border-radius:8px}
+    .timewallet{font-weight:700;font-size:18px}
+    .columns{display:flex;gap:12px}
+    @media(max-width:980px){.grid{grid-template-columns:1fr;}.columns{flex-direction:column}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Skill Exchange — Prototype</h1>
+      <div class="card" style="display:flex;gap:12px;align-items:center">
+        <div class="small muted">Time Wallet</div>
+        <div id="timeBalance" class="timewallet">0h</div>
+      </div>
+    </header>
+
+    <div class="grid">
+      <main>
+        <section class="card">
+          <h2 style="margin-top:0">Create an Offer / Request</h2>
+          <div class="small muted">Quickly create what you can teach and what you want to learn</div>
+          <div style="margin-top:12px">
+            <div class="form-row">
+              <input id="name" placeholder="Your name (e.g. Alex)" />
+              <select id="mode">
+                <option value="online">Online</option>
+                <option value="local">Local</option>
+              </select>
+            </div>
+            <div class="form-row">
+              <input id="teachSkill" placeholder="I can teach (e.g. Guitar)" />
+              <input id="learnSkill" placeholder="I want to learn (e.g. Baking)" />
+            </div>
+            <div class="form-row">
+              <input id="duration" placeholder="Duration (hours)" type="number" min="0.25" step="0.25" />
+              <input id="when" placeholder="When (e.g. Tue 7pm)" />
+            </div>
+            <div style="display:flex;gap:8px;margin-top:8px">
+              <button id="createBtn">Create Offer</button>
+              <button id="findBtn" style="background:transparent;color:var(--accent);border:1px solid rgba(125,211,252,0.08)">Find Matches</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="card" style="margin-top:14px">
+          <h3 style="margin:0">Community Matches</h3>
+          <div class="small muted">Potential matches based on skills & availability</div>
+          <div id="matches" class="list"></div>
+        </section>
+
+        <section class="card" style="margin-top:14px">
+          <h3 style="margin:0">Timebank Ledger</h3>
+          <div class="small muted">Track credits earned and used</div>
+          <div id="ledger" class="list"></div>
+        </section>
+      </main>
+
+      <aside>
+        <div class="card">
+          <h3 style="margin:0">Active Users</h3>
+          <div class="small muted">Sample community members</div>
+          <div id="users" class="list"></div>
+        </div>
+
+        <div class="card" style="margin-top:12px">
+          <h3 style="margin:0">Quick actions</h3>
+          <div style="margin-top:8px" class="columns">
+            <button id="joinDemo">Join as Demo User</button>
+            <button id="clearStorage" style="background:transparent;color:var(--accent);border:1px solid rgba(125,211,252,0.08)">Reset</button>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:12px">
+          <h4 style="margin:0">How it works</h4>
+          <ol class="small muted">
+            <li>Make an offer (what you teach) and a request (what you learn)</li>
+            <li>Hit "Find Matches" to see close matches</li>
+            <li>Schedule, complete sessions, and credit time to your wallet</li>
+          </ol>
+        </div>
+      </aside>
+    </div>
+
+    <footer class="small muted">Prototype — not production. This demo stores data in your browser for quick testing.</footer>
+  </div>
+
+  <script>
+    // Simple in-browser data store
+    const STORAGE_KEY = 'skill_exchange_demo_v1';
+    let state = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+    if(!state.users) state = { users: sampleUsers(), ledger: [], self: null };
+
+    function sampleUsers(){
+      return [
+        {id:uid(),name:'Maya', teach:['Baking'], learn:['Guitar'], mode:'local', rating:4.8, location:'Hyderabad'},
+        {id:uid(),name:'Sam', teach:['Guitar'], learn:['Python'], mode:'online', rating:4.6},
+        {id:uid(),name:'Priya', teach:['Photography'], learn:['Guitar'], mode:'local', rating:4.9, location:'Delhi'},
+        {id:uid(),name:'Ravi', teach:['Web Design'], learn:['Baking'], mode:'online', rating:4.2}
+      ];
+    }
+    function uid(){return Math.random().toString(36).slice(2,9)}
+
+    // UI refs
+    const usersEl = document.getElementById('users');
+    const matchesEl = document.getElementById('matches');
+    const ledgerEl = document.getElementById('ledger');
+    const timeBalanceEl = document.getElementById('timeBalance');
+
+    // initial render
+    renderUsers(); renderLedger(); renderBalance();
+
+    document.getElementById('createBtn').addEventListener('click', ()=>{
+      const name = document.getElementById('name').value.trim() || 'You';
+      const teach = document.getElementById('teachSkill').value.trim();
+      const learn = document.getElementById('learnSkill').value.trim();
+      const mode = document.getElementById('mode').value;
+      const duration = parseFloat(document.getElementById('duration').value) || 1;
+      const when = document.getElementById('when').value || 'Anytime';
+      if(!teach && !learn){alert('Please provide at least a teach or learn skill.');return}
+
+      // create or update self
+      const me = {id: state.self ? state.self.id : uid(), name, teach: teach? teach.split(',').map(s=>s.trim()):[], learn: learn? learn.split(',').map(s=>s.trim()):[], mode, rating:4.5, availability:when};
+      if(!state.self) state.users.push(me);
+      state.self = me;
+      saveState();
+      renderUsers();
+      alert('Offer saved. Click Find Matches to see matches.');
+    });
+
+    document.getElementById('findBtn').addEventListener('click', ()=>{
+      if(!state.self){alert('Create your offer first.');return}
+      const matches = findMatches(state.self);
+      renderMatches(matches);
+    });
+
+    document.getElementById('joinDemo').addEventListener('click', ()=>{
+      const demo = {id:uid(),name:'Demo-'+Math.floor(Math.random()*90+10),teach:['Chess'],learn:['Guitar'],mode:'online',rating:4.3};
+      state.users.push(demo); saveState(); renderUsers();
+    });
+    document.getElementById('clearStorage').addEventListener('click', ()=>{localStorage.removeItem(STORAGE_KEY); state={users:sampleUsers(),ledger:[],self:null}; renderUsers(); renderLedger(); renderBalance(); alert('Reset done.');});
+
+    function findMatches(me){
+      // simple scoring: complementary skills + mode match
+      const results = [];
+      for(const u of state.users){
+        if(u.id === me.id) continue;
+        let score=0; let reasons=[];
+        // if their teach intersects my learn
+        if(me.learn && me.learn.some(l=>u.teach && u.teach.some(t=>t.toLowerCase()===l.toLowerCase()))){score+=50; reasons.push('They teach what you want');}
+        // if my teach intersects their learn
+        if(me.teach && me.teach.some(t=>u.learn && u.learn.some(l=>l.toLowerCase()===t.toLowerCase()))){score+=40; reasons.push('You teach what they want');}
+        // mode match
+        if(me.mode && u.mode && me.mode===u.mode){score+=10; reasons.push('Same mode');}
+        // rating
+        if(u.rating) score += Math.round(u.rating*2);
+        if(score>0) results.push({...u,score,reasons});
+      }
+      return results.sort((a,b)=>b.score-a.score);
+    }
+
+    function renderUsers(){
+      usersEl.innerHTML = '';
+      for(const u of state.users){
+        const el = document.createElement('div'); el.className='user';
+        el.innerHTML = `<div class="meta"><div class="avatar">${u.name.slice(0,2).toUpperCase()}</div>
+          <div><div style="font-weight:700">${u.name} <span class="badge small">${u.rating||4.5}★</span></div>
+          <div class="muted">Teaches: ${u.teach.join(', ')}<br/>Learns: ${u.learn?u.learn.join(', '):'-'}</div></div></div>
+          <div style="text-align:right"><div class="small muted">${u.mode}</div><button data-id="${u.id}" class="connectBtn">Connect</button></div>`;
+        usersEl.appendChild(el);
+      }
+      // attach connect listeners
+      document.querySelectorAll('.connectBtn').forEach(b=>b.addEventListener('click', (e)=>{const id=e.target.dataset.id; proposeSession(id);}));
+    }
+
+    function renderMatches(matches){
+      matchesEl.innerHTML = '';
+      if(matches.length===0){matchesEl.innerHTML='<div class="small muted">No matches found. Try expanding skills or switching mode.</div>';return}
+      for(const m of matches){
+        const el = document.createElement('div'); el.className='user match';
+        el.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><div><strong>${m.name}</strong> <span class="small muted">(${m.mode})</span></div><div><span class="badge">score ${m.score}</span></div></div>
+          <div class="muted small" style="margin-top:6px">Reasons: ${m.reasons.join(' · ')}</div>
+          <div style="margin-top:8px;display:flex;gap:8px"><button data-id="${m.id}" class="bookBtn">Propose</button><button data-id="${m.id}" style="background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--muted)">View profile</button></div>`;
+        matchesEl.appendChild(el);
+      }
+      document.querySelectorAll('.bookBtn').forEach(b=>b.addEventListener('click', (e)=>{bookSession(e.target.dataset.id);}));
+    }
+
+    function renderLedger(){
+      ledgerEl.innerHTML = '';
+      if(!state.ledger || state.ledger.length===0){ledgerEl.innerHTML='<div class="small muted">No ledger entries yet.</div>';return}
+      for(const it of state.ledger.slice().reverse()){
+        const el = document.createElement('div'); el.className='user';
+        el.innerHTML = `<div>${it.desc}</div><div class="muted small">${it.date}</div><div style="font-weight:700">${it.hours}h</div>`;
+        ledgerEl.appendChild(el);
+      }
+    }
+
+    function renderBalance(){
+      const bal = (state.ledger||[]).reduce((s,it)=>s + (it.type==='credit'? it.hours : -it.hours), 0);
+      timeBalanceEl.textContent = Math.round(bal*100)/100 + 'h';
+    }
+
+    function proposeSession(id){
+      const user = state.users.find(u=>u.id===id);
+      if(!user) return alert('User not found');
+      if(!confirm(`Propose a swap with ${user.name}? This will credit your time wallet after completion.`)) return;
+      // create pending ledger entry (for demo we auto-complete)
+      const hours = 1;
+      completeSession(user, hours);
+    }
+
+    function bookSession(id){
+      const user = state.users.find(u=>u.id===id);
+      if(!user) return;
+      const hours = parseFloat(prompt('Session length in hours', '1')) || 1;
+      if(!confirm(`Book session: you will teach ${user.name} ${state.self && state.self.teach?state.self.teach.join(', '):'(your skill)'} for ${hours}h.`)) return;
+      completeSession(user, hours);
+    }
+
+    function completeSession(user, hours){
+      // credit the person who taught, debit learner
+      // simple assumption: state.self taught and earned hours
+      const now = new Date().toLocaleString();
+      if(state.self){
+        state.ledger.push({id:uid(),type:'credit',hours:hours,desc:`Taught ${user.name}`,date:now});
+        state.ledger.push({id:uid(),type:'debit',hours:hours,desc:`Learned from ${user.name}`,date:now});
+      } else {
+        state.ledger.push({id:uid(),type:'credit',hours:hours,desc:`Taught ${user.name}`,date:now});
+      }
+      saveState(); renderLedger(); renderBalance(); alert('Session recorded — time credited.');
+    }
+
+    function saveState(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+
+    // initial render ledger and balance
+    renderUsers(); renderLedger(); renderBalance();
+
+  </script>
+</body>
+</html>
